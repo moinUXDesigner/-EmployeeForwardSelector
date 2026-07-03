@@ -1,0 +1,376 @@
+/*
+ * EmployeeForwardSelector plugin styles.
+ * All rules are scoped under .efs-overlay to avoid leaking into host app CSS.
+ * This file's content is mirrored inside employee-forward-selector.js (CSS_TEXT) so the
+ * plugin is style-complete from a single <script> include. If you link this file manually
+ * instead, give the <link> id="efs-styles" so the JS does not inject a duplicate copy.
+ */
+
+.efs-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.efs-overlay,
+.efs-overlay * {
+  box-sizing: border-box;
+}
+
+.efs-modal {
+  background: #ffffff;
+  width: 900px;
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.efs-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.efs-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.efs-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.efs-close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.efs-close-btn:hover {
+  color: #111827;
+  background: #f3f4f6;
+}
+
+.efs-tablist {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.efs-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.efs-tab:hover {
+  color: #1d4ed8;
+}
+
+.efs-tab-active {
+  color: #1d4ed8;
+  border-bottom-color: #1d4ed8;
+}
+
+.efs-content {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.efs-tabpanel[hidden] {
+  display: none;
+}
+
+.efs-search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.efs-search-input {
+  flex: 1 1 auto;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.efs-search-input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+  border-color: #2563eb;
+}
+
+.efs-search-btn {
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.efs-search-btn:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.efs-search-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.efs-table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 320px;
+}
+
+.efs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.efs-table th {
+  position: sticky;
+  top: 0;
+  background: #f9fafb;
+  text-align: left;
+  padding: 8px 10px;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.efs-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1f2937;
+}
+
+.efs-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.efs-col-action {
+  text-align: center;
+  width: 70px;
+}
+
+.efs-radio-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0;
+}
+
+.efs-radio-label input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.efs-radio-label input:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.efs-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.efs-status-message {
+  padding: 20px 10px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.efs-status-message.efs-status-error {
+  color: #b91c1c;
+}
+
+.efs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.efs-action-types {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.efs-action-types legend {
+  font-weight: 600;
+  color: #374151;
+  padding: 0;
+  margin-right: 6px;
+}
+
+.efs-action-type-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.efs-action-type-item input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.efs-action-type-item input:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.efs-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.efs-btn {
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.efs-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.efs-btn-secondary {
+  background: transparent;
+  color: #2563eb;
+  border-color: transparent;
+}
+
+.efs-btn-secondary:hover {
+  text-decoration: underline;
+}
+
+.efs-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.efs-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.efs-validation {
+  width: 100%;
+  order: 3;
+  color: #b91c1c;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.efs-validation:empty {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .efs-modal {
+    width: 100%;
+    max-height: 90vh;
+  }
+
+  .efs-tab {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .efs-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .efs-action-types {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .efs-footer-actions {
+    justify-content: flex-end;
+  }
+
+  .efs-table-wrap {
+    overflow-x: auto;
+  }
+
+  .efs-table {
+    min-width: 480px;
+  }
+}
