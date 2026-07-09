@@ -55,6 +55,18 @@ It works as a standalone modal that can be dropped into any application — Reac
 
 See [examples/plain-html.html](examples/plain-html.html) for a full working page, and [examples/react-example.jsx](examples/react-example.jsx) for a React integration using `useRef`/`useEffect`.
 
+### Running the plain HTML example against a real backend
+
+`examples/plain-html.html` calls `/api/employees` (same origin) instead of a mock, so it needs the bundled dev proxy ([server.js](server.js)) to be running:
+
+```bash
+cp .env.example .env       # fill in EFS_API_USERNAME / EFS_API_PASSWORD
+npm install
+npm start
+```
+
+Then open `http://localhost:3001/examples/plain-html.html` (not as a `file://` path). The proxy serves the static example files and forwards employee search calls to the configured API with Basic Auth attached server-side, so credentials never reach the browser and no CORS configuration is needed on the client. See the comments in [server.js](server.js) for adjusting the request/response contract to match your real backend.
+
 ## API
 
 ```javascript

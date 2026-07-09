@@ -25,13 +25,33 @@
   <script>
     var outputEl = document.getElementById("output");
 
+    // ---------------------------------------------------------------------
+    // ZVBTS_EMP_DATA_MSTR_RFC integration (SAP PI/PO REST Adapter)
+    //
+    // This page must be opened through the dev proxy (npm start, then
+    // http://localhost:3001/examples/plain-html.html), not as a local file.
+    // The proxy (../server.js) serves this file and exposes /api/employees
+    // on the same origin, so this fetch is same-origin (no CORS needed) and
+    // the real endpoint's Basic Auth credentials stay server-side -- see
+    // server.js and .env (created locally, not committed) to configure them.
+    // ---------------------------------------------------------------------
+    function searchEmployeesFromApi(searchText) {
+      var url = "/api/employees?searchText=" + encodeURIComponent(searchText || "");
+      return fetch(url, { headers: { Accept: "application/json" } }).then(function (response) {
+        if (!response.ok) {
+          throw new Error("ZVBTS_EMP_DATA_MSTR_RFC request failed: " + response.status);
+        }
+        return response.json();
+      });
+    }
+
     EmployeeForwardSelector.init({
       container: "#employee-selector-root",
       title: "RBAC Panel",
       subtitle: "Choose an employee and assign the forwarding action",
       preferredEmployees: EFSMockData.mockPreferredEmployees,
       predefinedEmployees: EFSMockData.mockPredefinedEmployees,
-      searchEmployees: EFSMockData.mockSearchEmployees,
+      searchEmployees: searchEmployeesFromApi,
       onConfirm: function (data) {
         console.log("Selected employee and action:", data);
         outputEl.textContent = JSON.stringify(data, null, 2);

@@ -1,0 +1,12 @@
+{
+  "name": "employee-forward-selector-examples",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dev proxy server for the EmployeeForwardSelector plain HTML example. Serves the static example files and proxies employee search calls to ZVBTS_EMP_DATA_MSTR_RFC server-side, so the browser never needs the API credentials and never hits cross-origin CORS restrictions.",
+  "scripts": {
+    "start": "node --env-file=.env server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
