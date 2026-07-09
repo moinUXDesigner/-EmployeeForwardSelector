@@ -199,6 +199,36 @@
   width: 70px;
 }
 
+.efs-col-choice {
+  text-align: center;
+  width: 60px;
+}
+
+.efs-favorite-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: #9ca3af;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.efs-favorite-btn:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.efs-favorite-btn.efs-favorite-active {
+  color: #dc2626;
+}
+
+.efs-favorite-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .efs-radio-label {
   display: inline-flex;
   align-items: center;

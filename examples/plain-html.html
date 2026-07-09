@@ -39,6 +39,9 @@
       onCancel: function () {
         console.log("Employee selection cancelled");
         outputEl.textContent = JSON.stringify({ status: "cancelled" }, null, 2);
+      },
+      onPreferredListChange: function (updatedList, employee, isAdded) {
+        console.log("Preferred list changed:", updatedList, employee, isAdded);
       }
     });
 

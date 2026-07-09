@@ -9,6 +9,7 @@ It works as a standalone modal that can be dropped into any application — Reac
 ## Features
 
 - Three selection tabs: **All Employees** (search-driven), **Preferred List**, and **Predefined List**
+- Heart toggle in **All Employees** to add/remove an employee from the Preferred List without leaving the search results
 - One employee selection enforced globally across all tabs
 - Action-type selection: `RO`, `RVO`, `AA`, `DSC` (configurable)
 - Validation messages, loading/empty/error states
@@ -77,6 +78,7 @@ EmployeeForwardSelector.setPredefinedEmployees(data)
 | `searchEmployees` | `(searchText: string) => Promise<Employee[]>` | — (required for All Employees tab) | Called on tab open and on Search click |
 | `onConfirm` | `(data) => void` | — (required) | Called with the selection when OK is clicked |
 | `onCancel` | `() => void` | `() => {}` | Called when the popup is closed without a selection |
+| `onPreferredListChange` | `(updatedList: Employee[], employee: Employee, isAdded: boolean) => void` | `() => {}` | Called when the heart toggle in All Employees adds/removes an employee from the Preferred List, so the host app can persist the change |
 | `defaultActiveTab` | `"allEmployees" \| "preferredList" \| "predefinedList"` | `"allEmployees"` | Tab shown on open |
 | `actionTypes` | `string[]` | `["RO", "RVO", "AA", "DSC"]` | Action-type radio options |
 | `allowOutsideClickClose` | `boolean` | `false` | Close the popup on backdrop click |

@@ -40,6 +40,7 @@
     searchEmployees: null,
     onConfirm: function () {},
     onCancel: function () {},
+    onPreferredListChange: function () {},
     defaultActiveTab: "allEmployees",
     actionTypes: ["RO", "RVO", "AA", "DSC"],
     allowOutsideClickClose: false,
@@ -74,6 +75,11 @@
     ".efs-table td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#1f2937}" +
     ".efs-table tbody tr:hover{background:#f9fafb}" +
     ".efs-col-action{text-align:center;width:70px}" +
+    ".efs-col-choice{text-align:center;width:60px}" +
+    ".efs-favorite-btn{background:transparent;border:none;cursor:pointer;font-size:18px;line-height:1;color:#9ca3af;padding:2px;border-radius:4px}" +
+    ".efs-favorite-btn:hover{color:#dc2626;background:#fef2f2}" +
+    ".efs-favorite-btn.efs-favorite-active{color:#dc2626}" +
+    ".efs-favorite-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}" +
     ".efs-radio-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin:0}" +
     ".efs-radio-label input{width:15px;height:15px;cursor:pointer}" +
     ".efs-radio-label input:focus-visible{outline:2px solid #2563eb;outline-offset:2px}" +
@@ -285,10 +291,14 @@
       table.className = "efs-table";
       var thead = document.createElement("thead");
       var headRow = document.createElement("tr");
-      ["Sl No.", "Employee Name", "Designation", "Action"].forEach(function (label) {
+      var columns = ["Sl No.", "Employee Name", "Designation"];
+      if (pKey === "allEmployees") columns.push("Choice");
+      columns.push("Action");
+      columns.forEach(function (label) {
         var th = document.createElement("th");
         th.textContent = label;
         if (label === "Action") th.className = "efs-col-action";
+        if (label === "Choice") th.className = "efs-col-choice";
         headRow.appendChild(th);
       });
       thead.appendChild(headRow);
@@ -456,6 +466,10 @@
     desigTd.textContent = employee.designation;
     tr.appendChild(desigTd);
 
+    if (sourceTab === "allEmployees") {
+      tr.appendChild(buildChoiceCell(employee));
+    }
+
     var actionTd = document.createElement("td");
     actionTd.className = "efs-col-action";
     var label = document.createElement("label");
@@ -483,6 +497,27 @@
     return tr;
   }
 
+  function buildChoiceCell(employee) {
+    var choiceTd = document.createElement("td");
+    choiceTd.className = "efs-col-choice";
+    var isFavorite = isInPreferredList(employee.employeeId);
+    var favBtn = document.createElement("button");
+    favBtn.type = "button";
+    favBtn.className = "efs-favorite-btn" + (isFavorite ? " efs-favorite-active" : "");
+    favBtn.setAttribute("aria-pressed", isFavorite ? "true" : "false");
+    var label = (isFavorite ? "Remove " : "Add ") + employee.employeeName + (isFavorite ? " from" : " to") + " Employee Choice";
+    favBtn.setAttribute("aria-label", label);
+    favBtn.title = label;
+    favBtn.textContent = isFavorite ? "♥" : "♡";
+    favBtn.addEventListener("click", function (emp) {
+      return function () {
+        handleToggleFavorite(emp);
+      };
+    }(employee));
+    choiceTd.appendChild(favBtn);
+    return choiceTd;
+  }
+
   function renderActionTypes() {
     var inputs = state.dom.actionTypeInputs;
     for (var value in inputs) {
@@ -507,6 +542,51 @@
   function handleActionTypeChange(value) {
     state.selectedActionType = value;
     clearValidation();
+  }
+
+  function isInPreferredList(employeeId) {
+    return state.employees.preferredList.some(function (e) {
+      return String(e.employeeId) === String(employeeId);
+    });
+  }
+
+  function handleToggleFavorite(employee) {
+    var list = state.employees.preferredList;
+    var index = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].employeeId) === String(employee.employeeId)) {
+        index = i;
+        break;
+      }
+    }
+
+    var isAdded;
+    if (index === -1) {
+      list.push({
+        employeeId: employee.employeeId,
+        employeeName: employee.employeeName,
+        designation: employee.designation
+      });
+      isAdded = true;
+    } else {
+      list.splice(index, 1);
+      isAdded = false;
+      if (
+        state.selectedEmployee &&
+        state.selectedEmployee.sourceTab === "preferredList" &&
+        String(state.selectedEmployee.employeeId) === String(employee.employeeId)
+      ) {
+        state.selectedEmployee = null;
+      }
+    }
+
+    renderTable("allEmployees");
+    if (state.activeTab === "preferredList") renderTable("preferredList");
+
+    var onPreferredListChange = state.config.onPreferredListChange;
+    if (typeof onPreferredListChange === "function") {
+      onPreferredListChange(list.slice(), employee, isAdded);
+    }
   }
 
   function clearValidation() {
@@ -804,6 +884,7 @@
         state.selectedEmployee = null;
       }
       renderTable("preferredList");
+      renderTable("allEmployees");
     },
 
     setPredefinedEmployees: function (data) {

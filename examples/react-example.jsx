@@ -36,6 +36,9 @@ export default function ForwardFileButton({ onForward }) {
       },
       onCancel: () => {
         console.log("Employee selection cancelled");
+      },
+      onPreferredListChange: (updatedList, employee, isAdded) => {
+        console.log("Preferred list changed:", updatedList, employee, isAdded);
       }
     });
 
