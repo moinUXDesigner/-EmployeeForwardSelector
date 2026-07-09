@@ -25,7 +25,7 @@ export default function ForwardFileButton({ onForward }) {
   useEffect(() => {
     EmployeeForwardSelector.init({
       container: containerRef.current,
-      title: "Select Employee",
+      title: "RBAC Panel",
       subtitle: "Choose an employee and assign the forwarding action",
       preferredEmployees: mockPreferredEmployees,
       predefinedEmployees: mockPredefinedEmployees,

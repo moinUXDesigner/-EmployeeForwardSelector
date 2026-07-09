@@ -17,12 +17,12 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var TAB_KEYS = ["allEmployees", "preferredList", "predefinedList"];
+  var TAB_KEYS = ["allEmployees", "predefinedList", "preferredList"];
 
   var TAB_LABELS = {
     allEmployees: "All Employees",
-    preferredList: "Preferred List",
-    predefinedList: "Predefined List"
+    preferredList: "Employee Choice",
+    predefinedList: "Workflow"
   };
 
   var VALIDATION_MESSAGES = {
@@ -33,7 +33,7 @@
 
   var DEFAULT_CONFIG = {
     container: null,
-    title: "Select Employee",
+    title: "RBAC Panel",
     subtitle: "Choose an employee and assign the forwarding action",
     preferredEmployees: [],
     predefinedEmployees: [],
@@ -312,7 +312,7 @@
     var fieldset = document.createElement("fieldset");
     fieldset.className = "efs-action-types";
     var legend = document.createElement("legend");
-    legend.textContent = "Action Type:";
+    legend.textContent = "Action:";
     fieldset.appendChild(legend);
     var actionTypeInputs = {};
 
