@@ -53,7 +53,8 @@ function mapEmployeeRecord(record) {
     employeeName: record.EMP_NAME,
     designation: record.JOB_KEY_TEXT,
     functionalHead: record.BUSINESS_AREA_TEXT || "",
-    service: record.PSA_TEXT || ""
+    service: record.PSA_TEXT || "",
+    positionId: record.POSITION_ID
   };
 }
 

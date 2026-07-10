@@ -601,13 +601,17 @@
 
   // ---- Behavior ----
 
+  function cloneEmployeeFields(employee) {
+    var clone = {};
+    for (var key in employee) {
+      if (Object.prototype.hasOwnProperty.call(employee, key)) clone[key] = employee[key];
+    }
+    return clone;
+  }
+
   function handleEmployeeSelected(employee, sourceTab) {
-    state.selectedEmployee = {
-      employeeId: employee.employeeId,
-      employeeName: employee.employeeName,
-      designation: employee.designation,
-      sourceTab: sourceTab
-    };
+    state.selectedEmployee = cloneEmployeeFields(employee);
+    state.selectedEmployee.sourceTab = sourceTab;
     clearValidation();
   }
 
@@ -842,12 +846,7 @@
       return;
     }
     var data = {
-      selectedEmployee: {
-        employeeId: state.selectedEmployee.employeeId,
-        employeeName: state.selectedEmployee.employeeName,
-        designation: state.selectedEmployee.designation,
-        sourceTab: state.selectedEmployee.sourceTab
-      },
+      selectedEmployee: cloneEmployeeFields(state.selectedEmployee),
       actionType: state.selectedActionType
     };
     var onConfirm = state.config.onConfirm;

@@ -112,11 +112,11 @@ EmployeeForwardSelector.setFilterOptions({ functionalHeads: string[], services: 
 }
 ```
 
-Optional fields (`department`, `office`, `mobile`, `email`) may also be included; only `employeeName` and `designation` are shown in the table today.
+Optional fields (e.g. `department`, `office`, `mobile`, `email`, `positionId`) may also be included; only `employeeName` and `designation` are shown in the table today, but any extra field on the employee object is preserved and passed through to `onConfirm` untouched.
 
 ## Output
 
-On **OK**, `onConfirm` receives:
+On **OK**, `onConfirm` receives the full selected employee object (plus `sourceTab`) exactly as it was passed into the plugin, for example:
 
 ```json
 {
@@ -124,6 +124,7 @@ On **OK**, `onConfirm` receives:
     "employeeId": "EMP001",
     "employeeName": "Shaik Khaja Mynuddin",
     "designation": "Junior Accounts Officer",
+    "positionId": 30000601,
     "sourceTab": "allEmployees"
   },
   "actionType": "RO"
