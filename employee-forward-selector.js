@@ -45,7 +45,11 @@
     actionTypes: ["RO", "RVO", "AA", "DSC"],
     allowOutsideClickClose: false,
     resetSelectionOnClose: true,
-    closeOnEscape: true
+    closeOnEscape: true,
+    functionalHeadOptions: [],
+    serviceOptions: [],
+    suggestMinChars: 2,
+    suggestDebounceMs: 250
   };
 
   var CSS_TEXT =
@@ -63,12 +67,20 @@
     ".efs-tab-active{color:#1d4ed8;border-bottom-color:#1d4ed8}" +
     ".efs-content{padding:16px 20px;overflow-y:auto;flex:1 1 auto}" +
     ".efs-tabpanel[hidden]{display:none}" +
-    ".efs-search-bar{display:flex;gap:8px;margin-bottom:12px}" +
-    ".efs-search-input{flex:1 1 auto;padding:8px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:13px}" +
+    ".efs-search-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-start}" +
+    ".efs-search-input-wrap{position:relative;flex:1 1 220px;min-width:180px}" +
+    ".efs-search-input{width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:13px}" +
     ".efs-search-input:focus{outline:2px solid #2563eb;outline-offset:1px;border-color:#2563eb}" +
+    ".efs-filter-select{padding:8px 10px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;background:#fff;color:#1f2937;max-width:180px}" +
+    ".efs-filter-select:focus{outline:2px solid #2563eb;outline-offset:1px;border-color:#2563eb}" +
     ".efs-search-btn{padding:8px 16px;background:#fff;border:1px solid #2563eb;color:#2563eb;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}" +
     ".efs-search-btn:hover:not(:disabled){background:#eff6ff}" +
     ".efs-search-btn:disabled{opacity:.6;cursor:not-allowed}" +
+    ".efs-suggestions{position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid #d1d5db;border-radius:4px;box-shadow:0 8px 20px rgba(15,23,42,.15);max-height:220px;overflow-y:auto;z-index:10;list-style:none;margin:0;padding:4px 0}" +
+    ".efs-suggestions[hidden]{display:none}" +
+    ".efs-suggestion-item{padding:7px 10px;cursor:pointer;font-size:13px;color:#1f2937}" +
+    ".efs-suggestion-item .efs-suggestion-desig{color:#6b7280;font-size:12px;margin-left:6px}" +
+    ".efs-suggestion-item:hover,.efs-suggestion-item.efs-suggestion-active{background:#eff6ff}" +
     ".efs-table-wrap{border:1px solid #e5e7eb;border-radius:4px;overflow:auto;max-height:320px}" +
     ".efs-table{width:100%;border-collapse:collapse;font-size:13px}" +
     ".efs-table th{position:sticky;top:0;background:#f9fafb;text-align:left;padding:8px 10px;font-weight:600;color:#374151;border-bottom:1px solid #e5e7eb;white-space:nowrap}" +
@@ -123,6 +135,10 @@
       searchState: "idle",
       searchQuery: "",
       searchToken: 0,
+      suggestions: [],
+      suggestionActiveIndex: -1,
+      suggestToken: 0,
+      suggestDebounceTimer: null,
       selectedEmployee: null,
       selectedActionType: null,
       dom: {
@@ -251,6 +267,9 @@
     var statusEl = {};
     var searchInput = null;
     var searchBtn = null;
+    var suggestionsList = null;
+    var functionalHeadSelect = null;
+    var serviceSelect = null;
 
     for (var p = 0; p < TAB_KEYS.length; p++) {
       var pKey = TAB_KEYS[p];
@@ -264,16 +283,43 @@
       if (pKey === "allEmployees") {
         var searchBar = document.createElement("div");
         searchBar.className = "efs-search-bar";
+
+        var searchInputWrap = document.createElement("div");
+        searchInputWrap.className = "efs-search-input-wrap";
         searchInput = document.createElement("input");
         searchInput.type = "text";
         searchInput.className = "efs-search-input";
         searchInput.placeholder = "Search by employee name, designation, or employee ID";
         searchInput.setAttribute("aria-label", "Search by employee name, designation, or employee ID");
+        searchInput.setAttribute("autocomplete", "off");
+        searchInput.setAttribute("role", "combobox");
+        searchInput.setAttribute("aria-expanded", "false");
+        searchInput.setAttribute("aria-autocomplete", "list");
+        suggestionsList = document.createElement("ul");
+        suggestionsList.className = "efs-suggestions";
+        suggestionsList.setAttribute("role", "listbox");
+        suggestionsList.id = "efs-suggestions-" + Date.now();
+        suggestionsList.hidden = true;
+        searchInput.setAttribute("aria-controls", suggestionsList.id);
+        searchInputWrap.appendChild(searchInput);
+        searchInputWrap.appendChild(suggestionsList);
+
+        functionalHeadSelect = document.createElement("select");
+        functionalHeadSelect.className = "efs-filter-select";
+        functionalHeadSelect.setAttribute("aria-label", "Filter by Functional Head");
+
+        serviceSelect = document.createElement("select");
+        serviceSelect.className = "efs-filter-select";
+        serviceSelect.setAttribute("aria-label", "Filter by Service");
+
         searchBtn = document.createElement("button");
         searchBtn.type = "button";
         searchBtn.className = "efs-search-btn";
         searchBtn.textContent = "Search";
-        searchBar.appendChild(searchInput);
+
+        searchBar.appendChild(searchInputWrap);
+        searchBar.appendChild(functionalHeadSelect);
+        searchBar.appendChild(serviceSelect);
         searchBar.appendChild(searchBtn);
         panel.appendChild(searchBar);
       }
@@ -361,6 +407,9 @@
     state.dom.statusEl = statusEl;
     state.dom.searchInput = searchInput;
     state.dom.searchBtn = searchBtn;
+    state.dom.suggestionsList = suggestionsList;
+    state.dom.functionalHeadSelect = functionalHeadSelect;
+    state.dom.serviceSelect = serviceSelect;
     state.dom.validationEl = validationEl;
     state.dom.actionTypesFieldset = fieldset;
     state.dom.actionTypeInputs = actionTypeInputs;
@@ -368,10 +417,33 @@
     state.dom.okBtn = okBtn;
 
     buildActionTypeInputs();
+    renderFilterOptions();
     attachPersistentListeners();
 
     var container = resolveContainer(state.config.container);
     container.appendChild(overlay);
+  }
+
+  function populateSelectOptions(selectEl, options, allLabel) {
+    if (!selectEl) return;
+    var previousValue = selectEl.value;
+    selectEl.innerHTML = "";
+    var allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = allLabel;
+    selectEl.appendChild(allOption);
+    (options || []).forEach(function (value) {
+      var opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = value;
+      selectEl.appendChild(opt);
+    });
+    if (options && options.indexOf(previousValue) !== -1) selectEl.value = previousValue;
+  }
+
+  function renderFilterOptions() {
+    populateSelectOptions(state.dom.functionalHeadSelect, state.config.functionalHeadOptions, "Functional Head: All");
+    populateSelectOptions(state.dom.serviceSelect, state.config.serviceOptions, "Service: All");
   }
 
   function buildActionTypeInputs() {
@@ -614,11 +686,19 @@
     state.dom.tabButtons[tabKey].focus();
   }
 
+  function currentFilters() {
+    return {
+      functionalHead: state.dom.functionalHeadSelect ? state.dom.functionalHeadSelect.value : "",
+      service: state.dom.serviceSelect ? state.dom.serviceSelect.value : ""
+    };
+  }
+
   function runSearch(query) {
     if (typeof state.config.searchEmployees !== "function") {
       console.warn("EmployeeForwardSelector: config.searchEmployees is not provided.");
       return;
     }
+    hideSuggestions();
     state.searchQuery = query;
     state.searchState = "loading";
     state.allEmployeesLoaded = true;
@@ -626,7 +706,7 @@
     renderTable("allEmployees");
 
     var token = ++state.searchToken;
-    Promise.resolve(state.config.searchEmployees(query))
+    Promise.resolve(state.config.searchEmployees(query, currentFilters()))
       .then(function (results) {
         if (token !== state.searchToken) return;
         state.employees.allEmployees = sanitizeEmployeeArray(results, "searchEmployees result");
@@ -640,6 +720,119 @@
         state.dom.searchBtn.disabled = false;
         renderTable("allEmployees");
       });
+  }
+
+  // ---- Typeahead suggestions ----
+
+  function hideSuggestions() {
+    if (state.suggestDebounceTimer) {
+      clearTimeout(state.suggestDebounceTimer);
+      state.suggestDebounceTimer = null;
+    }
+    state.suggestions = [];
+    state.suggestionActiveIndex = -1;
+    if (!state.dom.suggestionsList) return;
+    state.dom.suggestionsList.hidden = true;
+    state.dom.suggestionsList.innerHTML = "";
+    state.dom.searchInput.setAttribute("aria-expanded", "false");
+  }
+
+  function selectSuggestion(employee) {
+    state.dom.searchInput.value = employee.employeeName;
+    runSearch(employee.employeeName);
+  }
+
+  function renderSuggestions(results) {
+    var list = state.dom.suggestionsList;
+    list.innerHTML = "";
+    state.suggestions = results;
+    state.suggestionActiveIndex = -1;
+
+    if (!results.length) {
+      hideSuggestions();
+      return;
+    }
+
+    results.forEach(function (employee, index) {
+      var item = document.createElement("li");
+      item.className = "efs-suggestion-item";
+      item.id = "efs-suggestion-" + index;
+      item.setAttribute("role", "option");
+      var nameSpan = document.createElement("span");
+      nameSpan.textContent = employee.employeeName;
+      item.appendChild(nameSpan);
+      var desigSpan = document.createElement("span");
+      desigSpan.className = "efs-suggestion-desig";
+      desigSpan.textContent = employee.designation;
+      item.appendChild(desigSpan);
+      item.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        selectSuggestion(employee);
+      });
+      list.appendChild(item);
+    });
+
+    list.hidden = false;
+    state.dom.searchInput.setAttribute("aria-expanded", "true");
+  }
+
+  function setSuggestionActiveIndex(index) {
+    var items = state.dom.suggestionsList.children;
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.toggle("efs-suggestion-active", i === index);
+    }
+    state.suggestionActiveIndex = index;
+  }
+
+  function fetchSuggestions(query) {
+    if (typeof state.config.searchEmployees !== "function") return;
+    var token = ++state.suggestToken;
+    Promise.resolve(state.config.searchEmployees(query, currentFilters()))
+      .then(function (results) {
+        if (token !== state.suggestToken) return;
+        renderSuggestions(sanitizeEmployeeArray(results, "searchEmployees result").slice(0, 8));
+      })
+      .catch(function () {
+        if (token !== state.suggestToken) return;
+        hideSuggestions();
+      });
+  }
+
+  function handleSearchInputChanged() {
+    if (state.suggestDebounceTimer) clearTimeout(state.suggestDebounceTimer);
+    var query = state.dom.searchInput.value.trim();
+    if (query.length < state.config.suggestMinChars) {
+      hideSuggestions();
+      return;
+    }
+    state.suggestDebounceTimer = setTimeout(function () {
+      fetchSuggestions(query);
+    }, state.config.suggestDebounceMs);
+  }
+
+  function handleSearchInputKeydown(e) {
+    var hasSuggestions = state.dom.suggestionsList && !state.dom.suggestionsList.hidden && state.suggestions.length;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (hasSuggestions && state.suggestionActiveIndex !== -1) {
+        selectSuggestion(state.suggestions[state.suggestionActiveIndex]);
+      } else {
+        runSearch(state.dom.searchInput.value.trim());
+      }
+      return;
+    }
+    if (e.key === "Escape") {
+      hideSuggestions();
+      return;
+    }
+    if (!hasSuggestions) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSuggestionActiveIndex((state.suggestionActiveIndex + 1) % state.suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSuggestionActiveIndex((state.suggestionActiveIndex - 1 + state.suggestions.length) % state.suggestions.length);
+    }
   }
 
   function handleOkClick() {
@@ -743,11 +936,10 @@
       addListener(state.dom.searchBtn, "click", function () {
         runSearch(state.dom.searchInput.value.trim());
       }, "persistent");
-      addListener(state.dom.searchInput, "keydown", function (e) {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          runSearch(state.dom.searchInput.value.trim());
-        }
+      addListener(state.dom.searchInput, "input", handleSearchInputChanged, "persistent");
+      addListener(state.dom.searchInput, "keydown", handleSearchInputKeydown, "persistent");
+      addListener(state.dom.searchInput, "blur", function () {
+        hideSuggestions();
       }, "persistent");
     }
 
@@ -771,6 +963,7 @@
     state.isOpen = false;
     state.dom.overlay.style.display = "none";
     removeListenersInScope("session");
+    hideSuggestions();
 
     state.employees.allEmployees = [];
     state.searchState = "idle";
@@ -885,6 +1078,13 @@
       }
       renderTable("preferredList");
       renderTable("allEmployees");
+    },
+
+    setFilterOptions: function (data) {
+      if (!state || !state.isInitialized) return;
+      state.config.functionalHeadOptions = (data && data.functionalHeads) || [];
+      state.config.serviceOptions = (data && data.services) || [];
+      renderFilterOptions();
     },
 
     setPredefinedEmployees: function (data) {

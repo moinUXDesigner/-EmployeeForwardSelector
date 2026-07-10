@@ -76,6 +76,7 @@ EmployeeForwardSelector.close()
 EmployeeForwardSelector.destroy()
 EmployeeForwardSelector.setPreferredEmployees(data)
 EmployeeForwardSelector.setPredefinedEmployees(data)
+EmployeeForwardSelector.setFilterOptions({ functionalHeads: string[], services: string[] })
 ```
 
 ## Configuration
@@ -87,7 +88,11 @@ EmployeeForwardSelector.setPredefinedEmployees(data)
 | `subtitle` | `string` | `"Choose an employee and assign the forwarding action"` | Optional modal subtitle |
 | `preferredEmployees` | `Employee[]` | `[]` | Data for the Preferred List tab |
 | `predefinedEmployees` | `Employee[]` | `[]` | Data for the Predefined List tab |
-| `searchEmployees` | `(searchText: string) => Promise<Employee[]>` | — (required for All Employees tab) | Called on tab open and on Search click |
+| `searchEmployees` | `(searchText: string, filters: { functionalHead: string, service: string }) => Promise<Employee[]>` | — (required for All Employees tab) | Called on tab open, on Search click, and (debounced) while typing for suggestions. `filters` holds the current dropdown selections (empty string = "All") |
+| `functionalHeadOptions` | `string[]` | `[]` | Options for the Functional Head filter dropdown |
+| `serviceOptions` | `string[]` | `[]` | Options for the Services filter dropdown |
+| `suggestMinChars` | `number` | `2` | Minimum characters typed before typeahead suggestions are fetched |
+| `suggestDebounceMs` | `number` | `250` | Debounce delay before firing the typeahead `searchEmployees` call |
 | `onConfirm` | `(data) => void` | — (required) | Called with the selection when OK is clicked |
 | `onCancel` | `() => void` | `() => {}` | Called when the popup is closed without a selection |
 | `onPreferredListChange` | `(updatedList: Employee[], employee: Employee, isAdded: boolean) => void` | `() => {}` | Called when the heart toggle in All Employees adds/removes an employee from the Preferred List, so the host app can persist the change |

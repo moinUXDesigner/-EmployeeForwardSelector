@@ -35,14 +35,34 @@
     // the real endpoint's Basic Auth credentials stay server-side -- see
     // server.js and .env (created locally, not committed) to configure them.
     // ---------------------------------------------------------------------
-    function searchEmployeesFromApi(searchText) {
-      var url = "/api/employees?searchText=" + encodeURIComponent(searchText || "");
-      return fetch(url, { headers: { Accept: "application/json" } }).then(function (response) {
+    function searchEmployeesFromApi(searchText, filters) {
+      var params = new URLSearchParams();
+      params.set("searchText", searchText || "");
+      if (filters && filters.functionalHead) params.set("functionalHead", filters.functionalHead);
+      if (filters && filters.service) params.set("service", filters.service);
+      return fetch("/api/employees?" + params.toString(), { headers: { Accept: "application/json" } }).then(function (response) {
         if (!response.ok) {
           throw new Error("ZVBTS_EMP_DATA_MSTR_RFC request failed: " + response.status);
         }
         return response.json();
       });
+    }
+
+    // Populates the Functional Head / Services dropdowns from the distinct
+    // values present in the employee master, fetched once and reused across
+    // the popup's lifetime.
+    function loadFilterOptions() {
+      fetch("/api/employees/filters", { headers: { Accept: "application/json" } })
+        .then(function (response) {
+          if (!response.ok) throw new Error("Failed to load filter options: " + response.status);
+          return response.json();
+        })
+        .then(function (data) {
+          EmployeeForwardSelector.setFilterOptions(data);
+        })
+        .catch(function (err) {
+          console.warn("EmployeeForwardSelector: could not load filter options.", err);
+        });
     }
 
     EmployeeForwardSelector.init({
@@ -64,6 +84,8 @@
         console.log("Preferred list changed:", updatedList, employee, isAdded);
       }
     });
+
+    loadFilterOptions();
 
     document.getElementById("forwardBtn").addEventListener("click", function () {
       EmployeeForwardSelector.open();

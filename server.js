@@ -51,7 +51,9 @@ function mapEmployeeRecord(record) {
   return {
     employeeId: record.EMP_ID,
     employeeName: record.EMP_NAME,
-    designation: record.JOB_KEY_TEXT
+    designation: record.JOB_KEY_TEXT,
+    functionalHead: record.BUSINESS_AREA_TEXT || "",
+    service: record.PSA_TEXT || ""
   };
 }
 
@@ -62,6 +64,44 @@ function matchesSearch(employee, searchText) {
     String(employee.designation || "").toLowerCase().indexOf(searchText) !== -1 ||
     String(employee.employeeId || "").toLowerCase().indexOf(searchText) !== -1
   );
+}
+
+function matchesExact(employeeValue, filterValue) {
+  if (!filterValue) return true;
+  return String(employeeValue || "").toLowerCase() === filterValue.toLowerCase();
+}
+
+// The upstream RFC has no search parameter -- every request fetches the full
+// employee master (1800+ rows). The typeahead suggestions call this endpoint
+// on every keystroke, so the raw list is cached briefly to avoid hammering
+// the SAP system with a full-table request per character typed.
+var EMPLOYEE_CACHE_TTL_MS = 5 * 60 * 1000;
+var employeeCache = { records: null, fetchedAt: 0 };
+
+async function getEmployeeRecords() {
+  var isFresh = employeeCache.records && Date.now() - employeeCache.fetchedAt < EMPLOYEE_CACHE_TTL_MS;
+  if (isFresh) return employeeCache.records;
+
+  var upstreamResponse = await fetch(EFS_API_BASE_URL, {
+    method: "POST",
+    headers: {
+      Authorization: "Basic " + Buffer.from(EFS_API_USERNAME + ":" + EFS_API_PASSWORD).toString("base64"),
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ IM_DATE: getTodayDateString() })
+  });
+
+  if (!upstreamResponse.ok) {
+    var err = new Error("ZVBTS_EMP_DATA_MSTR_RFC request failed: " + upstreamResponse.status);
+    err.status = upstreamResponse.status;
+    throw err;
+  }
+
+  var data = await upstreamResponse.json();
+  employeeCache.records = extractRecords(data).map(mapEmployeeRecord);
+  employeeCache.fetchedAt = Date.now();
+  return employeeCache.records;
 }
 
 app.use(express.static(path.join(__dirname)));
@@ -75,32 +115,38 @@ app.get("/api/employees", async function (req, res) {
   }
 
   var searchText = (req.query.searchText || "").trim().toLowerCase();
+  var functionalHead = (req.query.functionalHead || "").trim();
+  var service = (req.query.service || "").trim();
 
   try {
-    var upstreamResponse = await fetch(EFS_API_BASE_URL, {
-      method: "POST",
-      headers: {
-        Authorization: "Basic " + Buffer.from(EFS_API_USERNAME + ":" + EFS_API_PASSWORD).toString("base64"),
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ IM_DATE: getTodayDateString() })
-    });
-
-    if (!upstreamResponse.ok) {
-      res.status(upstreamResponse.status).json({
-        error: "ZVBTS_EMP_DATA_MSTR_RFC request failed: " + upstreamResponse.status
-      });
-      return;
-    }
-
-    var data = await upstreamResponse.json();
-    var employees = extractRecords(data).map(mapEmployeeRecord).filter(function (emp) {
-      return matchesSearch(emp, searchText);
+    var employees = (await getEmployeeRecords()).filter(function (emp) {
+      return (
+        matchesSearch(emp, searchText) &&
+        matchesExact(emp.functionalHead, functionalHead) &&
+        matchesExact(emp.service, service)
+      );
     });
     res.json(employees);
   } catch (err) {
-    res.status(502).json({ error: "Failed to reach ZVBTS_EMP_DATA_MSTR_RFC: " + err.message });
+    res.status(err.status || 502).json({ error: err.message || "Failed to reach ZVBTS_EMP_DATA_MSTR_RFC" });
+  }
+});
+
+app.get("/api/employees/filters", async function (req, res) {
+  if (!EFS_API_USERNAME || !EFS_API_PASSWORD) {
+    res.status(500).json({
+      error: "EFS_API_USERNAME/EFS_API_PASSWORD are not configured. Copy .env.example to .env and fill in real credentials."
+    });
+    return;
+  }
+
+  try {
+    var employees = await getEmployeeRecords();
+    var functionalHeads = Array.from(new Set(employees.map(function (e) { return e.functionalHead; }).filter(Boolean))).sort();
+    var services = Array.from(new Set(employees.map(function (e) { return e.service; }).filter(Boolean))).sort();
+    res.json({ functionalHeads: functionalHeads, services: services });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message || "Failed to reach ZVBTS_EMP_DATA_MSTR_RFC" });
   }
 });
 
