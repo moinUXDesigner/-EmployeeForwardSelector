@@ -1,0 +1,6 @@
+
+> employee-forward-selector-examples@1.0.0 start
+> node --env-file=.env server.js
+
+EmployeeForwardSelector dev proxy listening on http://localhost:3001
+Open http://localhost:3001/examples/plain-html.html
