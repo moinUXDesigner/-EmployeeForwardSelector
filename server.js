@@ -20,6 +20,7 @@
  * list, then filters it in-memory by the plugin's searchText before
  * returning it to the browser.
  */
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 
