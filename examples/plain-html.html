@@ -7,23 +7,83 @@
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #1f2937; }
   button.trigger { padding: 10px 20px; font-size: 14px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+  button.trigger.secondary { background: #6b7280; }
   pre { background: #f3f4f6; padding: 12px; border-radius: 4px; max-width: 640px; overflow: auto; }
+  .officer-panel { margin: 16px 0 24px; }
+  .officer-fields { display: flex; gap: 16px; margin: 8px 0 12px; }
+  .officer-fields label { display: flex; flex-direction: column; font-size: 13px; color: #374151; gap: 4px; }
+  .officer-fields input[readonly] { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px 10px; font-size: 14px; color: #1f2937; min-width: 220px; cursor: not-allowed; }
+  .officer-actions { display: flex; gap: 12px; }
+  .json-popup-overlay { display: none; position: fixed; inset: 0; background: rgba(17, 24, 39, 0.5); align-items: center; justify-content: center; z-index: 1000; }
+  .json-popup-overlay.open { display: flex; }
+  .json-popup { background: #fff; border-radius: 6px; max-width: 640px; width: 90%; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25); }
+  .json-popup-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; }
+  .json-popup-header h2 { margin: 0; font-size: 16px; }
+  .json-popup-close { background: none; border: none; font-size: 20px; line-height: 1; cursor: pointer; color: #6b7280; }
+  .json-popup pre { margin: 0; border-radius: 0 0 6px 6px; max-width: none; }
 </style>
 </head>
 <body>
   <h1>EmployeeForwardSelector - Plain HTML/JS Example</h1>
   <p>Click the button below to open the employee/action selection popup.</p>
-  <button type="button" class="trigger" id="forwardBtn">Forward File</button>
-
-  <h2>Last callback output</h2>
-  <pre id="output">(none yet)</pre>
+  <div id="currentOfficerPanel" class="officer-panel">
+    <h2>Current Forwarding Officer</h2>
+    <div class="officer-fields">
+      <label>
+        Employee Name
+        <input type="text" id="officerName" readonly />
+      </label>
+      <label>
+        Designation
+        <input type="text" id="officerDesignation" readonly />
+      </label>
+    </div>
+    <div class="officer-actions">
+      <button type="button" class="trigger" id="forwardBtn">Forward</button>
+      <button type="button" class="trigger secondary" id="selectOfficerBtn">Select Next Officer</button>
+    </div>
+  </div>
 
   <div id="employee-selector-root"></div>
+
+  <div id="jsonPopupOverlay" class="json-popup-overlay">
+    <div class="json-popup">
+      <div class="json-popup-header">
+        <h2>Callback Output</h2>
+        <button type="button" class="json-popup-close" id="jsonPopupClose" aria-label="Close">&times;</button>
+      </div>
+      <pre id="jsonPopupBody"></pre>
+    </div>
+  </div>
 
   <script src="../employee-forward-selector.js"></script>
   <script src="mock-data.js"></script>
   <script>
-    var outputEl = document.getElementById("output");
+    var officerNameEl = document.getElementById("officerName");
+    var officerDesignationEl = document.getElementById("officerDesignation");
+    var currentOfficer = null;
+
+    var jsonPopupOverlay = document.getElementById("jsonPopupOverlay");
+    var jsonPopupBody = document.getElementById("jsonPopupBody");
+
+    function showJsonPopup(data) {
+      jsonPopupBody.textContent = JSON.stringify(data, null, 2);
+      jsonPopupOverlay.classList.add("open");
+    }
+
+    function hideJsonPopup() {
+      jsonPopupOverlay.classList.remove("open");
+    }
+
+    document.getElementById("jsonPopupClose").addEventListener("click", hideJsonPopup);
+    jsonPopupOverlay.addEventListener("click", function (event) {
+      if (event.target === jsonPopupOverlay) hideJsonPopup();
+    });
+
+    function renderCurrentOfficer() {
+      officerNameEl.value = (currentOfficer && currentOfficer.employeeName) || "";
+      officerDesignationEl.value = (currentOfficer && currentOfficer.designation) || "";
+    }
 
     // ---------------------------------------------------------------------
     // ZVBTS_EMP_DATA_MSTR_RFC integration (SAP PI/PO REST Adapter)
@@ -74,11 +134,13 @@
       searchEmployees: searchEmployeesFromApi,
       onConfirm: function (data) {
         console.log("Selected employee and action:", data);
-        outputEl.textContent = JSON.stringify(data, null, 2);
+        showJsonPopup(data);
+        currentOfficer = data.selectedEmployee;
+        renderCurrentOfficer();
       },
       onCancel: function () {
         console.log("Employee selection cancelled");
-        outputEl.textContent = JSON.stringify({ status: "cancelled" }, null, 2);
+        showJsonPopup({ status: "cancelled" });
       },
       onPreferredListChange: function (updatedList, employee, isAdded) {
         console.log("Preferred list changed:", updatedList, employee, isAdded);
@@ -87,8 +149,29 @@
 
     loadFilterOptions();
 
-    document.getElementById("forwardBtn").addEventListener("click", function () {
+    currentOfficer = EFSMockData.mockPredefinedEmployees[0];
+    renderCurrentOfficer();
+
+    document.getElementById("selectOfficerBtn").addEventListener("click", function () {
       EmployeeForwardSelector.open();
+    });
+
+    document.getElementById("forwardBtn").addEventListener("click", function () {
+      if (!currentOfficer) {
+        showJsonPopup({ status: "error", message: "No officer selected." });
+        return;
+      }
+      var forwardedPayload = {
+        status: "forwarded",
+        forwardedTo: {
+          employeeId: currentOfficer.employeeId,
+          employeeName: currentOfficer.employeeName,
+          designation: currentOfficer.designation
+        },
+        forwardedAt: new Date().toISOString()
+      };
+      console.log("Forwarded to:", forwardedPayload);
+      showJsonPopup(forwardedPayload);
     });
   </script>
 </body>
